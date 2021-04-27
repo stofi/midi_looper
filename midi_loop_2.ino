@@ -17,7 +17,7 @@ unsigned long previousTime = 0;
 unsigned long timeInterval = 0;
 
 struct note {
-    uint8_t status;
+    bool status;
     uint8_t pitch;
     uint8_t velocity;
 };
@@ -48,14 +48,14 @@ struct note getNote() {
     switch (MIDI.getType()) {
         case midi::NoteOff:
             capturedNote = {
-                status : 0b10000000 || MIDI.getChannel(),
+                status : false,
                 pitch : MIDI.getData1(),
                 velocity : MIDI.getData2()
             };
             break;
         case midi::NoteOn:
             capturedNote = {
-                status : 0b10010000 || MIDI.getChannel(),
+                status : true,
                 pitch : MIDI.getData1(),
                 velocity : MIDI.getData2()
             };
@@ -80,7 +80,7 @@ void printChord(struct step *step) {
 
 void sendChord(struct step *step) {
     for (int i = 0; i < step->length; i++) {
-        if (step->chord[i].status || 0b01111111) {
+        if (step->chord[i].status) {
             MIDI.sendNoteOn(step->chord[i].pitch, step->chord[i].velocity, 1);
         } else {
             MIDI.sendNoteOff(step->chord[i].pitch, step->chord[i].velocity, 1);
