@@ -1,7 +1,7 @@
 #include <MIDI.h>
 #include <SoftwareSerial.h>
 
-SoftwareSerial midiSerial(2, 3);
+SoftwareSerial midiSerial(2, 4);
 MIDI_CREATE_INSTANCE(SoftwareSerial, midiSerial, MIDI);
 
 #define BPM_PIN A0
@@ -63,6 +63,7 @@ struct note getNote() {
         default:
             break;
     }
+    Serial.println(capturedNote.pitch, 2);
     return capturedNote;
 }
 
@@ -77,8 +78,22 @@ void printChord(struct step *step) {
     Serial.println();
 }
 
+void sendChord(struct step *step) {
+    for (int i = 0; i < step->length; i++) {
+        if (step->chord[i].status || 0b01111111) {
+            MIDI.sendNoteOn(step->chord[i].pitch, step->chord[i].velocity, 1);
+        } else {
+            MIDI.sendNoteOff(step->chord[i].pitch, step->chord[i].velocity, 1);
+        }
+        // what happens when both the chord contains noteOn and noteOff of the
+        // same pitch?
+        Serial.println(step->chord[i].pitch, 2);
+    }
+}
+
 void setup() {
     MIDI.begin();
+    MIDI.turnThruOff();
     Serial.begin(9600);
     setupMetronome();
 }
@@ -96,11 +111,8 @@ void loop() {
     timeInterval = (3750000 / bpm);
     if (headTime - previousTime < timeInterval) return;
     if (head->length > 0) {
-        printChord(head);
+        sendChord(head);
     }
-
-    // printChord(head->chord);
-    // Serial.println(head->id);
 
     previousTime = headTime;
     counter = ++counter % STEP_COUNT;
